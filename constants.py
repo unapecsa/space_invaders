@@ -1,0 +1,14 @@
+SCREEN_WIDTH = 700
+SCREEN_HEIGHT = 800
+size = (SCREEN_WIDTH, SCREEN_HEIGHT)
+gray1 = (120, 120, 120)
+gray2 = (170, 170, 170)
+dark_gray = (30,30,30)
+green = (0, 255, 0)
+black = (0, 0, 0)
+red = (255, 0, 0)
+white = (255, 255, 255)
+blue = (1,180,255)
+brown = (189, 108, 26)
+turquoise = (0, 255, 183)
+gold = (255, 214, 0)
