@@ -3,20 +3,21 @@ from laser import Laser
 from constants import *
 
 class Shooter(pygame.sprite.Sprite):
-    def __init__(self, pos):
+    def __init__(self, pos, laser_speed):
         super().__init__()
         # Spaceship
         self.image = pygame.image.load('imgs/spaceship.png').convert_alpha()
         self.image = pygame.transform.scale(self.image, (50,40))
         self.rect = self.image.get_rect(midbottom = pos)
-        self.speed = 3
+        self.speed = 6
         # Laser
         self.ready = True
         self.laser_time = 0
-        self.cooldown = 700
+        self.cooldown = 580
         self.lasers = pygame.sprite.Group()
         self.shooter_laser_sound = pygame.mixer.Sound('audio/shooter_laser.wav')
         self.shooter_laser_sound.set_volume(0.1)
+        self.laser_speed = laser_speed
 
     def update(self):
         self.get_input()
@@ -33,7 +34,7 @@ class Shooter(pygame.sprite.Sprite):
             self.rect.x -= self.speed
 
         if keys[pygame.K_SPACE] and self.ready:
-            self.shoot_laser()
+            self.shoot_laser(self.laser_speed)
             self.ready = False
             self.laser_time = pygame.time.get_ticks()
             
@@ -43,8 +44,8 @@ class Shooter(pygame.sprite.Sprite):
         elif self.rect.right >= SCREEN_WIDTH:
             self.rect.right = SCREEN_WIDTH
         
-    def shoot_laser(self):
-        self.lasers.add(Laser(self.rect.midtop, 5, 'red'))
+    def shoot_laser(self, laser_speed):
+        self.lasers.add(Laser(self.rect.midtop, laser_speed, 'red'))
         self.shooter_laser_sound.play()
 
     def recharge(self):

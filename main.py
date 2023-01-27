@@ -11,7 +11,7 @@ from laser import Laser
 class Game:
     def __init__(self):
         # Shooter setup
-        shooter_sprite = Shooter((SCREEN_WIDTH/2, SCREEN_HEIGHT-10))
+        shooter_sprite = Shooter((SCREEN_WIDTH/2, SCREEN_HEIGHT-10), laser_speed=10)
         self.shooter = pygame.sprite.GroupSingle(shooter_sprite)
 
         # Health and score setup
@@ -34,7 +34,8 @@ class Game:
         self.enemies = pygame.sprite.Group()
         self.enemy_lasers = pygame.sprite.Group()
         self.create_multiple_enemies(5, 11, 50, 50, 80, 200)
-        self.direction = 1
+        self.direction = 2
+        self.move_down_y_amount = 10
 
         # Extra setup
         self.extra_alien = pygame.sprite.GroupSingle()
@@ -48,7 +49,15 @@ class Game:
         self.alien_laser_sound.set_volume(0.2)
         self.extra_sound = pygame.mixer.Sound('audio/extra.wav')
         self.extra_sound.set_volume(0.2)
+        self.game_over_sound = pygame.mixer.Sound('audio/game_over.wav')
+        self.game_over_sound.set_volume(0.9)
+        self.get_hit_sound = pygame.mixer.Sound('audio/get_hit.wav')
+        self.get_hit_sound.set_volume(0.4)
+        self.explosion_sound = pygame.mixer.Sound('audio/explosion.wav')
+        self.explosion_sound.set_volume(0.1)
 
+        # FIXME
+        self.run_game_over = True
 
     def create_obstacle(self, x_start, y_start, x_offset):
         for row_index, row in enumerate(self.shape):
@@ -76,32 +85,30 @@ class Game:
     def check_enemy_direction(self):
         for enemy in self.enemies.sprites():
             if enemy.rect.right > SCREEN_WIDTH:
-                self.direction = -1
-                self.move_enemy_down(2)
+                self.direction = -self.direction
+                self.move_enemy_down(self.move_down_y_amount, -10)
             if enemy.rect.left < 0: 
-                self.direction = 1
-                self.move_enemy_down(2)
+                self.direction = -self.direction
+                self.move_enemy_down(self.move_down_y_amount, 10)
 
-    def move_enemy_down(self, y_amount):
+
+    def move_enemy_down(self, move_down_y_amount, shift):
         if self.enemies.sprites():
             for enemy in self.enemies.sprites():
-                enemy.rect.y += y_amount
+                enemy.rect.y += move_down_y_amount
+                enemy.rect.x += shift
 
-    def enemy_shoot_laser(self):
+    def enemy_shoot_laser(self, speed):
         if self.enemies.sprites():
             enemy_shooter = random.choice(self.enemies.sprites())
-            self.enemy_lasers.add(Laser(enemy_shooter.rect.center, -2, 'white'))
+            self.enemy_lasers.add(Laser(enemy_shooter.rect.center, -speed, 'white'))
             self.alien_laser_sound.play()
 
     def extra_alien_timer(self):
         self.extra_spawn_time -= 1
         if self.extra_spawn_time == 0:
-            self.extra_alien.add(Extra(random.choice(['left', 'right'])))
+            self.extra_alien.add(Extra(random.choice(['left', 'right']),speed=random.randint(3,5)))
             self.extra_spawn_time = random.randint(800,1400)
-
-    # def play_extra_sound(self):
-    #     if self.extra_alien.sprites():
-    #         self.extra_sound.play(loops=-1)
 
     def collision_checks(self):
         # Player lasers
@@ -114,11 +121,13 @@ class Game:
                 # Enemy collisions
                 aliens_hit = pygame.sprite.spritecollide(laser, self.enemies, True)
                 for enemy in aliens_hit:
+                    self.explosion_sound.play()
                     self.score += enemy.value
                     laser.kill()
                     
                 # Extra collisions
                 if pygame.sprite.spritecollide(laser, self.extra_alien, True):
+                    self.explosion_sound.play()
                     laser.kill()
                     self.score += 500
 
@@ -132,6 +141,7 @@ class Game:
                 # Player collisions
                 if pygame.sprite.spritecollide(e_laser, self.shooter, False):
                     e_laser.kill()
+                    self.get_hit_sound.play()
                     self.lives -= 1
         
         # Enemies with obstacles
@@ -139,9 +149,7 @@ class Game:
             for enemy in self.enemies:
                 pygame.sprite.spritecollide(enemy, self.blocks, True)
                 if pygame.sprite.spritecollide(enemy, self.shooter, False):
-                    print('game over')
-                    pygame.quit()
-                    sys.exit()
+                    self.lives = 0
 
     def display_lives(self):
         for life in range(self.lives):
@@ -151,6 +159,14 @@ class Game:
     def display_score(self):
         self.text_surf = self.font.render(f'Score: {self.score}', True, white)
         screen.blit(self.text_surf, (12,10))
+
+    # TODO
+    def check_game_over(self):
+        if self.run_game_over:
+            if self.lives == 0:
+                self.game_over_sound.play()
+                self.run_game_over = False
+            
 
     def run(self):
         # Updates
@@ -165,7 +181,7 @@ class Game:
         self.collision_checks()
         self.display_lives()
         self.display_score()
-        # self.play_extra_sound()
+        self.check_game_over()
 
         # Draw
         self.extra_alien.draw(screen)
@@ -184,6 +200,41 @@ class CRT:
         self.tv.set_alpha(80)
         screen.blit(self.tv, (0,0))
     
+
+
+
+
+# class GameState:
+#     def __init__(self):
+#         self.state = 'intro'
+
+#     def intro(self):
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 pygame.quit()
+#                 sys.exit()
+
+#         # Main logic
+#         screen.fill(dark_gray)
+
+#     def main_game(self):
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 pygame.quit()
+#                 sys.exit()
+#             if event.type == ALIENLASER:
+#                 game.enemy_shoot_laser(4)
+
+#         # Main logic
+#         screen.fill(dark_gray)
+#         game.run()
+#         crt.draw()
+
+
+
+
+
+
 
 if __name__ == '__main__':
     # Initialize pygame
@@ -205,7 +256,7 @@ if __name__ == '__main__':
                 pygame.quit()
                 sys.exit()
             if event.type == ALIENLASER:
-                game.enemy_shoot_laser()
+                game.enemy_shoot_laser(4)
 
         # Main logic
         screen.fill(dark_gray)
@@ -213,7 +264,7 @@ if __name__ == '__main__':
         crt.draw()
 
         # Update
-        clock.tick(120)
+        clock.tick(60)
         pygame.display.update()
 
 
