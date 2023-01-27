@@ -14,10 +14,9 @@ class Enemy(pygame.sprite.Sprite):
     
     def update(self,direction):
         self.tmp += 1
-        if not self.tmp % 1:
+        if not self.tmp % 3:
             self.rect.x += direction
             self.tmp = 0
-
 
 class Extra(pygame.sprite.Sprite):
     def __init__(self,side):
@@ -26,11 +25,16 @@ class Extra(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(self.image, (80,35))
 
         if side == 'left':
-            self.rect = self.image.get_rect(center = (-100, 80))
+            self.rect = self.image.get_rect(center = (-35, 80))
             self.speed = 1
         elif side == 'right':
-            self.rect = self.image.get_rect(center = (SCREEN_WIDTH+100, 80))
+            self.rect = self.image.get_rect(center = (SCREEN_WIDTH+35, 80))
             self.speed = -1
+        
+    def destroy(self):
+        if self.rect.right < 0 or self.rect.left > SCREEN_HEIGHT:
+            self.kill()
 
     def update(self):
         self.rect.x += self.speed
+        self.destroy()

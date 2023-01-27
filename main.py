@@ -40,6 +40,16 @@ class Game:
         self.extra_alien = pygame.sprite.GroupSingle()
         self.extra_spawn_time = random.randint(800, 1200)
 
+        # Audio
+        music = pygame.mixer.Sound('audio/music.wav')
+        music.set_volume(0.4)
+        music.play(loops=-1)
+        self.alien_laser_sound = pygame.mixer.Sound('audio/enemy_laser.wav')
+        self.alien_laser_sound.set_volume(0.2)
+        self.extra_sound = pygame.mixer.Sound('audio/extra.wav')
+        self.extra_sound.set_volume(0.2)
+
+
     def create_obstacle(self, x_start, y_start, x_offset):
         for row_index, row in enumerate(self.shape):
             for col_index, col in enumerate(row):
@@ -67,10 +77,10 @@ class Game:
         for enemy in self.enemies.sprites():
             if enemy.rect.right > SCREEN_WIDTH:
                 self.direction = -1
-                self.move_enemy_down(1)
+                self.move_enemy_down(2)
             if enemy.rect.left < 0: 
                 self.direction = 1
-                self.move_enemy_down(1)
+                self.move_enemy_down(2)
 
     def move_enemy_down(self, y_amount):
         if self.enemies.sprites():
@@ -80,13 +90,18 @@ class Game:
     def enemy_shoot_laser(self):
         if self.enemies.sprites():
             enemy_shooter = random.choice(self.enemies.sprites())
-            self.enemy_lasers.add(Laser(enemy_shooter.rect.center, -2))
+            self.enemy_lasers.add(Laser(enemy_shooter.rect.center, -2, 'white'))
+            self.alien_laser_sound.play()
 
     def extra_alien_timer(self):
         self.extra_spawn_time -= 1
         if self.extra_spawn_time == 0:
             self.extra_alien.add(Extra(random.choice(['left', 'right'])))
-            self.extra_spawn_time = random.randint(800,1200)
+            self.extra_spawn_time = random.randint(800,1400)
+
+    # def play_extra_sound(self):
+    #     if self.extra_alien.sprites():
+    #         self.extra_sound.play(loops=-1)
 
     def collision_checks(self):
         # Player lasers
@@ -150,6 +165,7 @@ class Game:
         self.collision_checks()
         self.display_lives()
         self.display_score()
+        # self.play_extra_sound()
 
         # Draw
         self.extra_alien.draw(screen)
@@ -191,7 +207,6 @@ if __name__ == '__main__':
             if event.type == ALIENLASER:
                 game.enemy_shoot_laser()
 
-
         # Main logic
         screen.fill(dark_gray)
         game.run()
@@ -199,7 +214,7 @@ if __name__ == '__main__':
 
         # Update
         clock.tick(120)
-        pygame.display.flip()
+        pygame.display.update()
 
 
 

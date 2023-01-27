@@ -15,6 +15,8 @@ class Shooter(pygame.sprite.Sprite):
         self.laser_time = 0
         self.cooldown = 700
         self.lasers = pygame.sprite.Group()
+        self.shooter_laser_sound = pygame.mixer.Sound('audio/shooter_laser.wav')
+        self.shooter_laser_sound.set_volume(0.1)
 
     def update(self):
         self.get_input()
@@ -42,7 +44,8 @@ class Shooter(pygame.sprite.Sprite):
             self.rect.right = SCREEN_WIDTH
         
     def shoot_laser(self):
-        self.lasers.add(Laser(self.rect.midtop, 8))
+        self.lasers.add(Laser(self.rect.midtop, 5, 'red'))
+        self.shooter_laser_sound.play()
 
     def recharge(self):
         if not self.ready:
