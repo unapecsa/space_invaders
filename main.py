@@ -199,19 +199,19 @@ class GameState:
         self.state = 'intro'
         self.game = None
 
-        # Initialize imgs related to states
+        # Inits related to states
+        # Intro
         self.intro_img = pygame.image.load('imgs/logo.png').convert_alpha()
-        self.intro_img = pygame.transform.scale(self.intro_img, (170,170))
-        self.logo_text = pygame.image.load('imgs/logo_text.png').convert_alpha()
-        self.logo_text = pygame.transform.scale(self.logo_text, (650,178))
-        self.font = pygame.font.Font('fonts/font.otf', 26)
+        self.intro_img = pygame.transform.scale(self.intro_img, (150,150))
+        self.shaded_font = pygame.font.Font('fonts/shaded_font.ttf', 85)
+        self.game_name_text = self.shaded_font.render(f'Invade Space', True, red)
+        self.font = pygame.font.Font('fonts/font.otf', 24)
         self.intro_text = self.font.render(f'Click anywhere to start', True, white)
+        #Outro
         self.outro_img = pygame.image.load('imgs/logo_dead.png').convert_alpha()
         self.outro_img = pygame.transform.scale(self.outro_img, (200,200))
         self.game_over_img = pygame.image.load('imgs/game_over.png').convert_alpha()
         self.game_over_img = pygame.transform.scale(self.game_over_img, (350,350))
-
-        # Initialize audio related to states
         self.game_over_sound = pygame.mixer.Sound('audio/game_over.wav')
         self.game_over_sound.set_volume(0.9)
 
@@ -231,12 +231,16 @@ class GameState:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.game = Game()
                 self.state = 'main_game'
+        
+        def blink():
+            if int(pygame.time.get_ticks()/800) % 2 == 0:
+                screen.blit(self.intro_text, self.intro_text.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT-200)))
 
         # Main logic
         screen.fill(dark_gray)
         screen.blit(self.intro_img, self.intro_img.get_rect(center = (SCREEN_WIDTH/2, 200)))
-        screen.blit(self.logo_text, self.logo_text.get_rect(center = (SCREEN_WIDTH/2, 350)))
-        screen.blit(self.intro_text, self.intro_text.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT-200)))
+        screen.blit(self.game_name_text, self.game_name_text.get_rect(center = (SCREEN_WIDTH/2, 300)))
+        blink()
         crt.draw()
 
     def main_game(self):
@@ -260,6 +264,10 @@ class GameState:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            # TODO
+            # if event.type == pygame.MOUSEBUTTONDOWN:
+            #     self.game = Game()
+            #     self.state = 'main_game'
 
         # Main logic
         screen.fill(dark_gray)
