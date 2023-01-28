@@ -5,7 +5,7 @@ import sys
 from constants import *
 from shooter import Shooter
 import obstacle
-from enemy import Enemy, Extra
+from enemy import Enemy, Extra, Nyan
 from laser import Laser
 
 class Game:
@@ -122,8 +122,9 @@ class Game:
                     laser.kill()
                     
                 # Extra collisions
-                if pygame.sprite.spritecollide(laser, self.extra_alien, True):
+                if pygame.sprite.spritecollide(laser, self.extra_alien, False):
                     self.explosion_sound.play()
+                    self.extra_alien.sprite.extra_kill()
                     laser.kill()
                     self.score += 500
 
@@ -159,9 +160,8 @@ class Game:
     def check_game_over(self):
         if self.lives == 0:
             if self.extra_alien.sprites():
-                self.extra_alien.sprite.extra_sound.fadeout(300)
+                self.extra_alien.sprite.extra_kill()
             return True
-    
 
     def run(self):
         # Updates
