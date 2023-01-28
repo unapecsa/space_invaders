@@ -20,7 +20,7 @@ class Game:
         self.live_surf = pygame.transform.scale(self.live_surf, (40,40))
         self.live_x_start_pos = SCREEN_WIDTH - (self.live_surf.get_size()[0] * 2) - 60
         self.score = 0
-        self.font = pygame.font.Font('fonts/font2.otf', 35)
+        self.font = pygame.font.Font('fonts/font.otf', 35)
 
         # Obstacle setup
         self.blocks = pygame.sprite.Group()
@@ -49,15 +49,11 @@ class Game:
         self.alien_laser_sound.set_volume(0.2)
         self.extra_sound = pygame.mixer.Sound('audio/extra.wav')
         self.extra_sound.set_volume(0.2)
-        self.game_over_sound = pygame.mixer.Sound('audio/game_over.wav')
-        self.game_over_sound.set_volume(0.9)
         self.get_hit_sound = pygame.mixer.Sound('audio/get_hit.wav')
-        self.get_hit_sound.set_volume(0.4)
+        self.get_hit_sound.set_volume(0.6)
         self.explosion_sound = pygame.mixer.Sound('audio/explosion.wav')
         self.explosion_sound.set_volume(0.1)
 
-        # FIXME
-        self.run_game_over = True
 
     def create_obstacle(self, x_start, y_start, x_offset):
         for row_index, row in enumerate(self.shape):
@@ -160,13 +156,12 @@ class Game:
         self.text_surf = self.font.render(f'Score: {self.score}', True, white)
         screen.blit(self.text_surf, (12,10))
 
-    # TODO
     def check_game_over(self):
-        if self.run_game_over:
-            if self.lives == 0:
-                self.game_over_sound.play()
-                self.run_game_over = False
-            
+        if self.lives == 0:
+            if self.extra_alien.sprites():
+                self.extra_alien.sprite.extra_sound.fadeout(300)
+            return True
+    
 
     def run(self):
         # Updates
@@ -181,7 +176,6 @@ class Game:
         self.collision_checks()
         self.display_lives()
         self.display_score()
-        self.check_game_over()
 
         # Draw
         self.extra_alien.draw(screen)
@@ -200,40 +194,78 @@ class CRT:
         self.tv.set_alpha(80)
         screen.blit(self.tv, (0,0))
     
+class GameState:
+    def __init__(self):
+        self.state = 'intro'
+        self.game = None
 
+        # Initialize imgs related to states
+        self.intro_img = pygame.image.load('imgs/logo.png').convert_alpha()
+        self.intro_img = pygame.transform.scale(self.intro_img, (170,170))
+        self.logo_text = pygame.image.load('imgs/logo_text.png').convert_alpha()
+        self.logo_text = pygame.transform.scale(self.logo_text, (650,178))
+        self.font = pygame.font.Font('fonts/font.otf', 26)
+        self.intro_text = self.font.render(f'Click anywhere to start', True, white)
+        self.outro_img = pygame.image.load('imgs/logo_dead.png').convert_alpha()
+        self.outro_img = pygame.transform.scale(self.outro_img, (200,200))
+        self.game_over_img = pygame.image.load('imgs/game_over.png').convert_alpha()
+        self.game_over_img = pygame.transform.scale(self.game_over_img, (350,350))
 
+        # Initialize audio related to states
+        self.game_over_sound = pygame.mixer.Sound('audio/game_over.wav')
+        self.game_over_sound.set_volume(0.9)
 
+    def state_manager(self):
+        if self.state == 'intro':
+            self.intro()
+        elif self.state == 'main_game':
+            self.main_game()
+        elif self.state == 'game_over':
+            self.game_over()
 
-# class GameState:
-#     def __init__(self):
-#         self.state = 'intro'
+    def intro(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.game = Game()
+                self.state = 'main_game'
 
-#     def intro(self):
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 pygame.quit()
-#                 sys.exit()
+        # Main logic
+        screen.fill(dark_gray)
+        screen.blit(self.intro_img, self.intro_img.get_rect(center = (SCREEN_WIDTH/2, 200)))
+        screen.blit(self.logo_text, self.logo_text.get_rect(center = (SCREEN_WIDTH/2, 350)))
+        screen.blit(self.intro_text, self.intro_text.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT-200)))
+        crt.draw()
 
-#         # Main logic
-#         screen.fill(dark_gray)
+    def main_game(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == ALIENLASER:
+                self.game.enemy_shoot_laser(4)
 
-#     def main_game(self):
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 pygame.quit()
-#                 sys.exit()
-#             if event.type == ALIENLASER:
-#                 game.enemy_shoot_laser(4)
+        # Main logic
+        screen.fill(dark_gray)
+        self.game.run()
+        crt.draw()
+        if self.game.check_game_over():
+            self.game_over_sound.play()
+            self.state = 'game_over'
 
-#         # Main logic
-#         screen.fill(dark_gray)
-#         game.run()
-#         crt.draw()
+    def game_over(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-
-
-
-
+        # Main logic
+        screen.fill(dark_gray)
+        screen.blit(self.outro_img, self.outro_img.get_rect(center = (SCREEN_WIDTH/2, 150)))
+        screen.blit(self.game_over_img, self.game_over_img.get_rect(center = (SCREEN_WIDTH/2, 300)))
+        crt.draw()
 
 
 if __name__ == '__main__':
@@ -243,25 +275,14 @@ if __name__ == '__main__':
 
     # Screen
     screen = pygame.display.set_mode(size)
-
-    game = Game()
+    game_state = GameState()
     crt = CRT()
 
     ALIENLASER = pygame.USEREVENT + 1
     pygame.time.set_timer(ALIENLASER, 800)
 
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == ALIENLASER:
-                game.enemy_shoot_laser(4)
-
-        # Main logic
-        screen.fill(dark_gray)
-        game.run()
-        crt.draw()
+        game_state.state_manager()
 
         # Update
         clock.tick(60)
