@@ -9,7 +9,7 @@ from enemy import Enemy, Extra, Nyan
 from laser import Laser
 
 class Game:
-    def __init__(self):
+    def __init__(self, enemy_speed=2, enemy_y_jump=10, enemy_shoot_freq=70, enemy_shoot_speed=4):
         # Shooter setup
         shooter_sprite = Shooter((SCREEN_WIDTH/2, SCREEN_HEIGHT-10), laser_speed=10)
         self.shooter = pygame.sprite.GroupSingle(shooter_sprite)
@@ -34,17 +34,20 @@ class Game:
         self.enemies = pygame.sprite.Group()
         self.enemy_lasers = pygame.sprite.Group()
         self.create_multiple_enemies(5, 11, 50, 50, 80, 200)
-        self.direction = 2
-        self.move_down_y_amount = 10
+        self.direction = enemy_speed
+        self.move_down_y_amount = enemy_y_jump
+        self.enemy_shoot_freq = enemy_shoot_freq
+        self.enemy_cooldown = enemy_shoot_freq
+        self.enemy_shoot_speed = enemy_shoot_speed
 
         # Extra setup
         self.extra_alien = pygame.sprite.GroupSingle()
         self.extra_spawn_time = random.randint(800, 1200)
 
         # Audio
-        music = pygame.mixer.Sound('audio/music.wav')
-        music.set_volume(0.4)
-        music.play(loops=-1)
+        self.music = pygame.mixer.Sound('audio/music.wav')
+        self.music.set_volume(0.4)
+        self.music.play(loops=-1)
         self.alien_laser_sound = pygame.mixer.Sound('audio/enemy_laser.wav')
         self.alien_laser_sound.set_volume(0.2)
         self.extra_sound = pygame.mixer.Sound('audio/extra.wav')
@@ -87,7 +90,6 @@ class Game:
                 self.direction = -self.direction
                 self.move_enemy_down(self.move_down_y_amount, 10)
 
-
     def move_enemy_down(self, move_down_y_amount, shift):
         if self.enemies.sprites():
             for enemy in self.enemies.sprites():
@@ -95,10 +97,13 @@ class Game:
                 enemy.rect.x += shift
 
     def enemy_shoot_laser(self, speed):
-        if self.enemies.sprites():
-            enemy_shooter = random.choice(self.enemies.sprites())
-            self.enemy_lasers.add(Laser(enemy_shooter.rect.center, -speed, 'white'))
-            self.alien_laser_sound.play()
+        self.enemy_cooldown -= 1
+        if self.enemy_cooldown == 0:
+            if self.enemies.sprites():
+                enemy_shooter = random.choice(self.enemies.sprites())
+                self.enemy_lasers.add(Laser(enemy_shooter.rect.center, -speed, 'white'))
+                self.alien_laser_sound.play()
+                self.enemy_cooldown = self.enemy_shoot_freq
 
     def extra_alien_timer(self):
         self.extra_spawn_time -= 1
@@ -157,6 +162,12 @@ class Game:
         self.text_surf = self.font.render(f'Score: {self.score}', True, white)
         screen.blit(self.text_surf, (12,10))
 
+    def check_victory(self):
+        if not self.enemies:
+            if self.extra_alien.sprites():
+                self.extra_alien.sprite.extra_kill()
+            return True
+
     def check_game_over(self):
         if self.lives == 0:
             if self.extra_alien.sprites():
@@ -176,6 +187,7 @@ class Game:
         self.collision_checks()
         self.display_lives()
         self.display_score()
+        self.enemy_shoot_laser(self.enemy_shoot_speed)
 
         # Draw
         self.extra_alien.draw(screen)
@@ -213,13 +225,16 @@ class GameState:
         self.game_over_img = pygame.image.load('imgs/game_over.png').convert_alpha()
         self.game_over_img = pygame.transform.scale(self.game_over_img, (350,350))
         self.game_over_sound = pygame.mixer.Sound('audio/game_over.wav')
+        self.outro_text = self.font.render(f'Click anywhere to restart', True, white)
         self.game_over_sound.set_volume(0.9)
 
     def state_manager(self):
         if self.state == 'intro':
             self.intro()
-        elif self.state == 'main_game':
-            self.main_game()
+        elif self.state == 'wave_one':
+            self.wave_one()
+        elif self.state == 'wave_two':
+            self.wave_two()
         elif self.state == 'game_over':
             self.game_over()
 
@@ -230,7 +245,7 @@ class GameState:
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.game = Game()
-                self.state = 'main_game'
+                self.state = 'wave_one'
         
         def blink():
             if int(pygame.time.get_ticks()/800) % 2 == 0:
@@ -243,19 +258,37 @@ class GameState:
         blink()
         crt.draw()
 
-    def main_game(self):
+    def wave_one(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == ALIENLASER:
-                self.game.enemy_shoot_laser(4)
+
+        # Main logic
+        screen.fill(dark_gray)
+        self.game.run()
+        crt.draw()
+        if self.game.check_victory():
+            self.game = Game(enemy_speed=3, enemy_shoot_freq=50)
+            self.state = 'wave_two'
+
+        if self.game.check_game_over():
+            self.game.music.fadeout(1000)
+            self.game_over_sound.play()
+            self.state = 'game_over'
+
+    def wave_two(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
         # Main logic
         screen.fill(dark_gray)
         self.game.run()
         crt.draw()
         if self.game.check_game_over():
+            self.game.music.fadeout(1000)
             self.game_over_sound.play()
             self.state = 'game_over'
 
@@ -264,15 +297,19 @@ class GameState:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            # TODO
-            # if event.type == pygame.MOUSEBUTTONDOWN:
-            #     self.game = Game()
-            #     self.state = 'main_game'
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.game = Game()
+                self.state = 'wave_one'
+
+        def out_blink():
+            if int(pygame.time.get_ticks()/800) % 2 == 0:
+                screen.blit(self.outro_text, self.outro_text.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT-200)))
 
         # Main logic
         screen.fill(dark_gray)
         screen.blit(self.outro_img, self.outro_img.get_rect(center = (SCREEN_WIDTH/2, 150)))
         screen.blit(self.game_over_img, self.game_over_img.get_rect(center = (SCREEN_WIDTH/2, 300)))
+        out_blink()
         crt.draw()
 
 
@@ -285,9 +322,6 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode(size)
     game_state = GameState()
     crt = CRT()
-
-    ALIENLASER = pygame.USEREVENT + 1
-    pygame.time.set_timer(ALIENLASER, 800)
 
     while True:
         game_state.state_manager()
