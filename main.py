@@ -9,7 +9,7 @@ from enemy import Enemy, Extra, Nyan
 from laser import Laser
 
 class Game:
-    def __init__(self, enemy_speed=2, enemy_y_jump=10, enemy_shoot_freq=70, enemy_shoot_speed=4):
+    def __init__(self, enemy_speed=2, enemy_y_jump=10, enemy_shoot_freq=70, enemy_shoot_speed=4, wave=1):
         # Shooter setup
         shooter_sprite = Shooter((SCREEN_WIDTH/2, SCREEN_HEIGHT-10), laser_speed=10)
         self.shooter = pygame.sprite.GroupSingle(shooter_sprite)
@@ -20,7 +20,11 @@ class Game:
         self.live_surf = pygame.transform.scale(self.live_surf, (40,40))
         self.live_x_start_pos = SCREEN_WIDTH - (self.live_surf.get_size()[0] * 2) - 60
         self.score = 0
-        self.font = pygame.font.Font('fonts/font.otf', 35)
+        self.wave = wave
+        def font(size):
+            return pygame.font.Font('fonts/font.otf', size)
+        self.font = font(35)
+        self.wave_font = font(25)
 
         # Obstacle setup
         self.blocks = pygame.sprite.Group()
@@ -45,9 +49,6 @@ class Game:
         self.extra_spawn_time = random.randint(800, 1200)
 
         # Audio
-        self.music = pygame.mixer.Sound('audio/music.wav')
-        self.music.set_volume(0.4)
-        self.music.play(loops=-1)
         self.alien_laser_sound = pygame.mixer.Sound('audio/enemy_laser.wav')
         self.alien_laser_sound.set_volume(0.2)
         self.extra_sound = pygame.mixer.Sound('audio/extra.wav')
@@ -108,7 +109,7 @@ class Game:
     def extra_alien_timer(self):
         self.extra_spawn_time -= 1
         if self.extra_spawn_time == 0:
-            self.extra_alien.add(Extra(random.choice(['left', 'right']),speed=random.randint(3,5)))
+            self.extra_alien.add(Nyan('left',speed=4))
             self.extra_spawn_time = random.randint(800,1400)
 
     def collision_checks(self):
@@ -158,9 +159,11 @@ class Game:
             x = self.live_x_start_pos + (life * self.live_surf.get_size()[0] * 1.1)
             screen.blit(self.live_surf, (x, 8))
 
-    def display_score(self):
-        self.text_surf = self.font.render(f'Score: {self.score}', True, white)
-        screen.blit(self.text_surf, (12,10))
+    def display_info(self):
+        self.score_surf = self.font.render(f'Score: {self.score}', True, white)
+        screen.blit(self.score_surf, (12,10))
+        self.wave_surf = self.wave_font.render(f'Wave {self.wave}', True, white)
+        screen.blit(self.wave_surf, self.wave_surf.get_rect(center =(SCREEN_WIDTH/2,26)))
 
     def check_victory(self):
         if not self.enemies:
@@ -186,7 +189,7 @@ class Game:
         self.extra_alien_timer()
         self.collision_checks()
         self.display_lives()
-        self.display_score()
+        self.display_info()
         self.enemy_shoot_laser(self.enemy_shoot_speed)
 
         # Draw
@@ -215,8 +218,10 @@ class GameState:
         # Intro
         self.intro_img = pygame.image.load('imgs/logo.png').convert_alpha()
         self.intro_img = pygame.transform.scale(self.intro_img, (150,150))
-        self.shaded_font = pygame.font.Font('fonts/shaded_font.ttf', 85)
-        self.game_name_text = self.shaded_font.render(f'Invade Space', True, red)
+        def shaded_font(size):
+            return pygame.font.Font('fonts/shaded_font.ttf', size)
+        self.invade_text = shaded_font(90).render(f'INVADE', True, red)
+        self.space_text = shaded_font(160).render(f'SPACE', True, red)
         self.font = pygame.font.Font('fonts/font.otf', 24)
         self.intro_text = self.font.render(f'Click anywhere to start', True, white)
         #Outro
@@ -227,6 +232,12 @@ class GameState:
         self.game_over_sound = pygame.mixer.Sound('audio/game_over.wav')
         self.outro_text = self.font.render(f'Click anywhere to restart', True, white)
         self.game_over_sound.set_volume(0.9)
+        #Music
+        self.music_w1 = pygame.mixer.Sound('audio/music_w1.wav')
+        self.music_w1.set_volume(0.4)
+        self.music_w1.play(loops=-1)
+        self.music_w2 = pygame.mixer.Sound('audio/music_w2.wav')
+        self.music_w2.set_volume(0.4)
 
     def state_manager(self):
         if self.state == 'intro':
@@ -254,7 +265,8 @@ class GameState:
         # Main logic
         screen.fill(dark_gray)
         screen.blit(self.intro_img, self.intro_img.get_rect(center = (SCREEN_WIDTH/2, 200)))
-        screen.blit(self.game_name_text, self.game_name_text.get_rect(center = (SCREEN_WIDTH/2, 300)))
+        screen.blit(self.invade_text, self.invade_text.get_rect(center = (SCREEN_WIDTH/2, 300)))
+        screen.blit(self.space_text, self.space_text.get_rect(center = (SCREEN_WIDTH/2, 400)))
         blink()
         crt.draw()
 
@@ -269,11 +281,12 @@ class GameState:
         self.game.run()
         crt.draw()
         if self.game.check_victory():
-            self.game = Game(enemy_speed=3, enemy_shoot_freq=50)
+            self.music_w1.fadeout(3000)
+            self.music_w2.play(loops=-1, fade_ms=6000)
+            self.game = Game(enemy_speed=3, enemy_shoot_freq=50, wave=2)
             self.state = 'wave_two'
 
         if self.game.check_game_over():
-            self.game.music.fadeout(1000)
             self.game_over_sound.play()
             self.state = 'game_over'
 
@@ -288,7 +301,7 @@ class GameState:
         self.game.run()
         crt.draw()
         if self.game.check_game_over():
-            self.game.music.fadeout(1000)
+            self.game.music_w2.fadeout(1000)
             self.game_over_sound.play()
             self.state = 'game_over'
 
