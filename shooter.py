@@ -3,7 +3,7 @@ from laser import Laser
 from constants import *
 
 class Shooter(pygame.sprite.Sprite):
-    def __init__(self, pos, laser_speed):
+    def __init__(self, pos, laser_speed, laser_cooldown):
         super().__init__()
         # Spaceship
         self.image = pygame.image.load('imgs/spaceship.png').convert_alpha()
@@ -13,7 +13,7 @@ class Shooter(pygame.sprite.Sprite):
         # Laser
         self.ready = True
         self.laser_time = 0
-        self.cooldown = 580
+        self.cooldown = laser_cooldown
         self.lasers = pygame.sprite.Group()
         self.shooter_laser_sound = pygame.mixer.Sound('audio/shooter_laser.wav')
         self.shooter_laser_sound.set_volume(0.1)

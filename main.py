@@ -9,17 +9,17 @@ from enemy import Enemy, Extra, Nyan
 from laser import Laser
 
 class Game:
-    def __init__(self, enemy_speed=2, enemy_y_jump=10, enemy_shoot_freq=70, enemy_shoot_speed=4, wave=1):
+    def __init__(self, enemy_speed=2, enemy_y_jump=10, enemy_shoot_freq=60, enemy_shoot_speed=4, laser_cooldown=580, wave=1, score=0, lives=3):
         # Shooter setup
-        shooter_sprite = Shooter((SCREEN_WIDTH/2, SCREEN_HEIGHT-10), laser_speed=10)
+        shooter_sprite = Shooter((SCREEN_WIDTH/2, SCREEN_HEIGHT-10), laser_speed=10, laser_cooldown=laser_cooldown)
         self.shooter = pygame.sprite.GroupSingle(shooter_sprite)
 
         # Health and score setup
-        self.lives = 3
+        self.lives = lives
         self.live_surf = pygame.image.load('imgs/heart.png').convert_alpha()
         self.live_surf = pygame.transform.scale(self.live_surf, (40,40))
         self.live_x_start_pos = SCREEN_WIDTH - (self.live_surf.get_size()[0] * 2) - 60
-        self.score = 0
+        self.score = score
         self.wave = wave
         def font(size):
             return pygame.font.Font('fonts/font.otf', size)
@@ -37,7 +37,7 @@ class Game:
         # Enemy setup
         self.enemies = pygame.sprite.Group()
         self.enemy_lasers = pygame.sprite.Group()
-        self.create_multiple_enemies(5, 11, 50, 50, 80, 200)
+        self.create_multiple_enemies(5, 2, 50, 50, 80, 200)
         self.direction = enemy_speed
         self.move_down_y_amount = enemy_y_jump
         self.enemy_shoot_freq = enemy_shoot_freq
@@ -283,7 +283,11 @@ class GameState:
         if self.game.check_victory():
             self.music_w1.fadeout(3000)
             self.music_w2.play(loops=-1, fade_ms=6000)
-            self.game = Game(enemy_speed=3, enemy_shoot_freq=50, wave=2)
+            self.game = Game(
+                enemy_speed=3, enemy_shoot_freq=50, 
+                laser_cooldown=500,
+                wave=2, score=self.game.score, lives=self.game.lives
+                )
             self.state = 'wave_two'
 
         if self.game.check_game_over():
@@ -301,7 +305,7 @@ class GameState:
         self.game.run()
         crt.draw()
         if self.game.check_game_over():
-            self.game.music_w2.fadeout(1000)
+            self.music_w2.fadeout(1000)
             self.game_over_sound.play()
             self.state = 'game_over'
 
