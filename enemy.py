@@ -46,20 +46,26 @@ class Extra(pygame.sprite.Sprite):
 # FIXME
 # - Longer limits for music fadein/out
 # - particle effect for trail
-# - flip img if coming from right
 class Nyan(Extra):
     def __init__(self,side,speed):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load(f'imgs/nyan.png').convert_alpha()
-        self.image = pygame.transform.scale(self.image, (100,39))
-        print(self.image.get_size())
         self.extra_sound = pygame.mixer.Sound('audio/nyan_sound.wav')
         self.extra_sound.set_volume(0.3)
-        self.extra_sound.play(loops=-1, fade_ms=500)
+        self.extra_sound.play(loops=-1, fade_ms=3000)
+        self.side = side
 
         if side == 'left':
-            self.rect = self.image.get_rect(center = (-35, 100))
+            self.image = pygame.image.load(f'imgs/nyan_left.png').convert_alpha()
+            self.image = pygame.transform.scale(self.image, (100,39))
+            self.rect = self.image.get_rect(midleft = (-500, 100))
             self.speed = speed
         elif side == 'right':
-            self.rect = self.image.get_rect(center = (SCREEN_WIDTH+35, 100))
+            self.image = pygame.image.load(f'imgs/nyan_right.png').convert_alpha()
+            self.image = pygame.transform.scale(self.image, (100,39))
+            self.rect = self.image.get_rect(midright = (SCREEN_WIDTH+500, 100))
             self.speed = -speed
+
+    def destroy(self):
+        if self.side == 'right' and self.rect.right < -50 or self.side == 'left' and self.rect.left > SCREEN_HEIGHT+50: 
+            self.extra_sound.fadeout(500)
+            self.kill() 

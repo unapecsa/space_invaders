@@ -37,7 +37,7 @@ class Game:
         # Enemy setup
         self.enemies = pygame.sprite.Group()
         self.enemy_lasers = pygame.sprite.Group()
-        self.create_multiple_enemies(5, 2, 50, 50, 80, 200)
+        self.create_multiple_enemies(5, 11, 50, 50, 80, 200)
         self.direction = enemy_speed
         self.move_down_y_amount = enemy_y_jump
         self.enemy_shoot_freq = enemy_shoot_freq
@@ -109,7 +109,8 @@ class Game:
     def extra_alien_timer(self):
         self.extra_spawn_time -= 1
         if self.extra_spawn_time == 0:
-            self.extra_alien.add(Nyan('left',speed=4))
+            self.extra_alien.add(Nyan(random.choice(['left', 'right']),speed=4))
+            # self.extra_alien.add(Extra(random.choice(['left', 'right']),speed=random.randint(3,5)))
             self.extra_spawn_time = random.randint(800,1400)
 
     def collision_checks(self):
