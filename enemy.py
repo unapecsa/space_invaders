@@ -44,7 +44,6 @@ class Extra(pygame.sprite.Sprite):
         self.destroy()
 
 # FIXME
-# - Longer limits for music fadein/out
 # - particle effect for trail
 class Nyan(Extra):
     def __init__(self,side,speed):

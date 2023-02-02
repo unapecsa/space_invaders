@@ -109,8 +109,8 @@ class Game:
     def extra_alien_timer(self):
         self.extra_spawn_time -= 1
         if self.extra_spawn_time == 0:
-            self.extra_alien.add(Nyan(random.choice(['left', 'right']),speed=4))
-            # self.extra_alien.add(Extra(random.choice(['left', 'right']),speed=random.randint(3,5)))
+            # self.extra_alien.add(Nyan(random.choice(['left', 'right']),speed=4))
+            self.extra_alien.add(Extra(random.choice(['left', 'right']),speed=random.randint(3,5)))
             self.extra_spawn_time = random.randint(800,1400)
 
     def collision_checks(self):
