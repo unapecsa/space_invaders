@@ -37,7 +37,7 @@ class Game:
         # Enemy setup
         self.enemies = pygame.sprite.Group()
         self.enemy_lasers = pygame.sprite.Group()
-        self.create_multiple_enemies(5, 11, 50, 50, 80, 200)
+        self.create_multiple_enemies(1, 1, 50, 50, 80, 200)
         self.direction = enemy_speed
         self.move_down_y_amount = enemy_y_jump
         self.enemy_shoot_freq = enemy_shoot_freq
@@ -223,6 +223,8 @@ class GameState:
             return pygame.font.Font('fonts/shaded_font.ttf', size)
         self.invade_text = shaded_font(90).render(f'INVADE', True, red)
         self.space_text = shaded_font(160).render(f'SPACE', True, red)
+        def shaded_font(size):
+            return pygame.font.Font('fonts/font.otf', size)
         self.font = pygame.font.Font('fonts/font.otf', 24)
         self.intro_text = self.font.render(f'Click anywhere to start', True, white)
         #Outro
@@ -239,6 +241,14 @@ class GameState:
         self.music_w1.play(loops=-1)
         self.music_w2 = pygame.mixer.Sound('audio/music_w2.wav')
         self.music_w2.set_volume(0.4)
+        #Victory
+        self.next_state = None
+        self.victory_timer = None
+        self.victory_font = pygame.font.Font('fonts/victory_font.otf', 48)
+        self.victory_text = self.victory_font.render(f'VICTORY', True, white)
+        self.trophy_img = pygame.image.load('imgs/trophy.png').convert_alpha()
+        self.trophy_img = pygame.transform.scale(self.trophy_img, (80,75))
+        self.font_big = pygame.font.Font('fonts/font.otf', 75)
 
     def state_manager(self):
         if self.state == 'intro':
@@ -249,6 +259,8 @@ class GameState:
             self.wave_two()
         elif self.state == 'game_over':
             self.game_over()
+        elif self.state == 'victory':
+            self.victory(self.next_state)
 
     def intro(self):
         for event in pygame.event.get():
@@ -269,7 +281,6 @@ class GameState:
         screen.blit(self.invade_text, self.invade_text.get_rect(center = (SCREEN_WIDTH/2, 300)))
         screen.blit(self.space_text, self.space_text.get_rect(center = (SCREEN_WIDTH/2, 400)))
         blink()
-        crt.draw()
 
     def wave_one(self):
         for event in pygame.event.get():
@@ -280,16 +291,11 @@ class GameState:
         # Main logic
         screen.fill(dark_gray)
         self.game.run()
-        crt.draw()
         if self.game.check_victory():
             self.music_w1.fadeout(3000)
-            self.music_w2.play(loops=-1, fade_ms=6000)
-            self.game = Game(
-                enemy_speed=3, enemy_shoot_freq=50, 
-                laser_cooldown=500,
-                wave=2, score=self.game.score, lives=self.game.lives
-                )
-            self.state = 'wave_two'
+            self.victory_timer = pygame.time.get_ticks()
+            self.next_state = 'wave_two'
+            self.state = 'victory'
 
         if self.game.check_game_over():
             self.game_over_sound.play()
@@ -304,11 +310,52 @@ class GameState:
         # Main logic
         screen.fill(dark_gray)
         self.game.run()
-        crt.draw()
         if self.game.check_game_over():
             self.music_w2.fadeout(1000)
             self.game_over_sound.play()
             self.state = 'game_over'
+
+        if self.game.check_victory():
+            self.music_w2.fadeout(3000)
+            self.victory_timer = pygame.time.get_ticks()
+            self.next_state = 'wave_three' # TODO
+            self.state = 'victory'
+
+    def show_victory_screen(self):
+        def blink():
+            if int(pygame.time.get_ticks()/800) % 2 == 0:
+                wave = self.font_big.render(f'{self.game.wave + 1}', True, white)
+                screen.blit(wave, wave.get_rect(center = (SCREEN_WIDTH/2, 500)))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        screen.fill(dark_gray)
+        screen.blit(self.victory_text, self.victory_text.get_rect(center = (SCREEN_WIDTH/2, 200)))
+        screen.blit(self.trophy_img, self.trophy_img.get_rect(center = (SCREEN_WIDTH/2, 250)))
+
+        text = self.font.render(f'Starting wave:', True, white)
+        screen.blit(text, text.get_rect(center = (SCREEN_WIDTH/2, 450)))
+        blink()
+
+    def victory(self, next_state):
+        self.show_victory_screen()
+    
+        # Beat wave one
+        if next_state == 'wave_two':
+            if pygame.time.get_ticks()-self.victory_timer > 4000:
+                self.music_w2.play(loops=-1, fade_ms=6000)
+                self.game = Game(
+                    enemy_speed=3, enemy_shoot_freq=50, 
+                    laser_cooldown=400,
+                    wave=2, score=self.game.score, lives=self.game.lives
+                    )
+                self.state = next_state
+
+        # Beat wave two TODO
+        # if next_state == 'wave_three':
+        # if next_state == 'boss_one':
 
     def game_over(self):
         for event in pygame.event.get():
@@ -316,19 +363,27 @@ class GameState:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
+                self.music_w1.play(loops=-1)
                 self.game = Game()
                 self.state = 'wave_one'
 
         def out_blink():
             if int(pygame.time.get_ticks()/800) % 2 == 0:
-                screen.blit(self.outro_text, self.outro_text.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT-200)))
+                screen.blit(self.outro_text, self.outro_text.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT-70)))
 
         # Main logic
         screen.fill(dark_gray)
         screen.blit(self.outro_img, self.outro_img.get_rect(center = (SCREEN_WIDTH/2, 150)))
         screen.blit(self.game_over_img, self.game_over_img.get_rect(center = (SCREEN_WIDTH/2, 300)))
+
+        self.score_text = self.font.render(f'Final score: {self.game.score}', True, green)
+        screen.blit(self.score_text, self.score_text.get_rect(center = (SCREEN_WIDTH/2, 450)))
         out_blink()
-        crt.draw()
+
+
+# TODO
+def get_quit_input():
+    pass
 
 
 if __name__ == '__main__':
@@ -343,6 +398,7 @@ if __name__ == '__main__':
 
     while True:
         game_state.state_manager()
+        crt.draw()
 
         # Update
         clock.tick(60)
